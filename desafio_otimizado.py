@@ -1,6 +1,7 @@
 menu = """================MENU================
     \t[u] Criar usuário
     \t[c] Criar conta corrente
+    \t[l] Listar contas
     \t[d] Depositar
     \t[s] Sacar
     \t[e] Extrato
