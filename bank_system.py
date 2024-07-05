@@ -40,8 +40,13 @@ class Cliente:
     def __init__(self, endereco):
         self.endereco = endereco
         self.accounts = []
+        self.index_account = 0
 
     def realizar_transacao(self, account, transaction):
+        if len(account.historico.day_transactions()) >= 2:
+            print("\nFoi excedida o número de transações permitidas para hoje.")
+            return
+
         transaction.registrar(account)
 
     def adicionar_conta(self, account):
@@ -169,7 +174,7 @@ class Historico:
             {
                 "tipo": transaction.__class__.__name__,
                 "valor": transaction.valor,
-                "data": datetime.now().strftime("%d-%m-%Y %H:%M:%s"),
+                "data": datetime.now().strftime( "%d-%m-%Y %H:%M:%S"),
             }
         )
 
@@ -178,6 +183,15 @@ class Historico:
             if transaction_type is None or transaction["tipo"].lower() == transaction_type.lower():
                 yield transaction
 
+    def day_transactions(self):
+        actual_date = datetime.utcnow().date()
+        transactions = []
+
+        for transaction in self._transactions:
+            transaction_date = datetime.strptime(transaction["data"], "%d-%m-%Y %H:%M:%S").date()
+            if actual_date == transaction_date:
+                transactions.append(transaction)
+        return transactions
 
 class Transacao(ABC):
     @property
@@ -292,18 +306,13 @@ def exibir_extrato(clientes):
         return
 
     print("\nEXTRATO")
-    transactions = account.historico.transacoes
-
     extract = ""
     have_transaction = False
-    for transaction in account.historico.gerar_relatorio(transaction_type=Saque.__class__.__name__):
+    for transaction in account.historico.gerar_relatorio():
         have_transaction = True
-        extract += f"\n{transaction['tipo']}: R$ {transaction['valor']:.2f}"
+        extract += f"\n{transaction["tipo"]}: R$ {transaction["valor"]:.2f}"
     if not have_transaction:
         extract = "Não foram realizadas movimentações."
-    else:
-        for transaction in transactions:
-            extract += f"\n{transaction['tipo']}:\n\tR$ {transaction['valor']:.2f}"
 
     print(extract)
     print(f"\nSaldo:\n\tR$ {account.saldo:.2f}")
@@ -339,7 +348,7 @@ def criar_conta(numero_conta, clientes, accounts):
         print("\nCliente não encontrado, fluxo de criação de conta encerrado!")
         return
 
-    account = ContaCorrente.nova_conta(cliente=cliente, numero=numero_conta)
+    account = ContaCorrente.new_account(cliente=cliente, numero=numero_conta, limite=500, limite_saques=50)
     accounts.append(account)
     cliente.accounts.append(account)
 
